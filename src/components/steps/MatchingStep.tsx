@@ -334,8 +334,9 @@ Best regards,
                           <DialogTrigger asChild>
                             <Button
                               size="sm"
+                              variant="outline"
                               onClick={() => handleAction(candidate, 'accept')}
-                              className="bg-success hover:bg-success/90 text-success-foreground"
+                              className="border-success text-success hover:bg-success hover:text-success-foreground"
                             >
                               <CheckCircle className="w-4 h-4 mr-1" />
                               Accept

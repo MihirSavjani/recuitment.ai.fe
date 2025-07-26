@@ -122,7 +122,7 @@
       width: 0;
     }
     100% {
-      width: 20ch;
+      width: 25ch;
     }
   }
   
@@ -137,10 +137,10 @@
 
   @keyframes blink {
     0%, 50% {
-      border-color: transparent;
+      opacity: 1;
     }
     51%, 100% {
-      border-color: currentColor;
+      opacity: 0;
     }
   }
 
@@ -178,7 +178,7 @@
     display: inline-block;
     overflow: hidden;
     white-space: nowrap;
-    max-width: 20ch;
+    max-width: 20.5ch;
     width: 0;
     animation: typewriter 3s steps(20, end) forwards;
     line-height: 1.2;
@@ -186,11 +186,11 @@
   }
   
   .typewriter-text::after {
-    content: '|';
+    content: '_';
     position: absolute;
-    right: -0.1em;
+    right: -0.8em;
     color: currentColor;
-    animation: blink 0.8s step-end infinite 3s;
+    animation: blink 0.8s step-end infinite;
   }
 
   .animate-typewriter-delay {
