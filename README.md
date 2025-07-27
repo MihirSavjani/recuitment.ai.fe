@@ -1,73 +1,90 @@
-# Welcome to your Lovable project
+# Recruit Genius Hub - AI Recruitment Platform
 
-## Project info
+A React-based recruitment platform with AI-powered job description processing, resume analysis, and candidate matching.
 
-**URL**: https://lovable.dev/projects/d2b0085c-97bb-494c-a79a-42c118232932
+## Features
 
-## How can I edit this code?
+- **Job Description Processing**: Upload PDF/DOC/DOCX or generate with AI
+- **Resume Analysis**: Upload up to 10 candidate resumes
+- **AI Matching**: Intelligent candidate-resume matching with scoring
+- **Candidate Management**: Accept/reject workflow with email templates
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- React 18 + TypeScript
+- shadcn/ui + Tailwind CSS
+- Vite
+- Fetch API for backend integration
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d2b0085c-97bb-494c-a79a-42c118232932) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v16+)
+- Backend API running on `http://localhost:8000`
 
-**Use your preferred IDE**
+## Quick Start
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# Clone repository
+git clone git@github.com:MihirSavjani/recuitment.ai.fe.git
+cd recuitment.ai.fe
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Install dependencies
+npm install
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open the URL shown in the terminal (typically `http://localhost:8080` or next available port).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## API Endpoints
 
-**Use GitHub Codespaces**
+The application requires these backend endpoints:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `POST /api/v1/job-description/process` - Process uploaded job descriptions
+- `POST /api/v1/job-description/generate` - Generate job descriptions with AI
+- `POST /api/v1/match-and-score` - Analyze candidate-resume matches
 
-## What technologies are used for this project?
+## API Documentation
 
-This project is built with:
+View the complete API documentation using FastAPI's built-in Swagger UI:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+# Start your FastAPI backend server, then visit:
+http://localhost:8000/docs
+```
 
-## How can I deploy this project?
+## Usage
 
-Simply open [Lovable](https://lovable.dev/projects/d2b0085c-97bb-494c-a79a-42c118232932) and click on Share -> Publish.
+1. **Job Description**: Upload file, generate with AI, or write manually
+2. **Resume Upload**: Add up to 10 candidate resumes
+3. **Analysis**: Review AI-generated match scores and candidate rankings
+4. **Actions**: Accept or reject candidates with email templates
 
-## Can I connect a custom domain to my Lovable project?
+## Build
 
-Yes, you can!
+```bash
+# Development
+npm run dev
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Production build
+npm run build
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+# Preview production build
+npm run preview
+```
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── ui/                 # shadcn/ui components
+│   ├── steps/              # Step components
+│   └── RecruitmentFlow.tsx # Main flow
+└── lib/api.ts             # API functions
+```
+
+---
+
+Built with React, TypeScript, and AI recruitment technology.
