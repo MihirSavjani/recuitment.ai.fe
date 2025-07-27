@@ -15,7 +15,8 @@ import {
   Star,
   TrendingUp,
   Users,
-  Award
+  Award,
+  FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,29 +50,35 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ score, size = 48 }) => {
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   const getColor = (score: number) => {
-    if (score >= 80) return 'hsl(142, 71%, 45%)'; // success
-    if (score >= 60) return 'hsl(38, 92%, 50%)'; // warning
-    return 'hsl(0, 84%, 60%)'; // destructive
+    if (score >= 80) return 'hsl(142, 71%, 45%)'; // success green
+    if (score >= 60) return 'hsl(38, 92%, 50%)'; // warning yellow
+    return 'hsl(0, 84%, 60%)'; // destructive red
+  };
+
+  const getBackgroundColor = (score: number) => {
+    if (score >= 80) return 'hsl(142, 71%, 95%)'; // light green
+    if (score >= 60) return 'hsl(38, 92%, 95%)'; // light yellow
+    return 'hsl(0, 84%, 95%)'; // light red
   };
 
   return (
-    <div className="progress-ring" style={{ width: size, height: size }}>
+    <div className="progress-ring relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
         <circle
           className="background"
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          strokeWidth="4"
+          strokeWidth="6"
           fill="none"
-          stroke="hsl(var(--muted))"
+          stroke={getBackgroundColor(score)}
         />
         <circle
           className="progress"
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          strokeWidth="4"
+          strokeWidth="6"
           fill="none"
           stroke={getColor(score)}
           strokeDasharray={strokeDasharray}
@@ -79,9 +86,6 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ score, size = 48 }) => {
           strokeLinecap="round"
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-semibold">{score}</span>
-      </div>
     </div>
   );
 };
@@ -277,12 +281,12 @@ Best regards,
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium">Name</th>
-                  <th className="text-left py-3 px-4 font-medium">Resume File</th>
-                  <th className="text-left py-3 px-4 font-medium">Missing Skills</th>
-                  <th className="text-left py-3 px-4 font-medium">Remarks</th>
-                  <th className="text-center py-3 px-4 font-medium">Match Score</th>
-                  <th className="text-center py-3 px-4 font-medium">Actions</th>
+                  <th className="text-center py-4 px-6 font-medium">Name</th>
+                  <th className="text-center py-4 px-6 font-medium">Resume File</th>
+                  <th className="text-center py-4 px-6 font-medium">Missing Skills</th>
+                  <th className="text-center py-4 px-6 font-medium">Remarks</th>
+                  <th className="text-center py-4 px-6 font-medium">Match Score</th>
+                  <th className="text-center py-4 px-6 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -293,50 +297,183 @@ Best regards,
                       candidate.isTopCandidate ? 'bg-primary/5 border-primary/20' : ''
                     }`}
                   >
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
+                    <td className="py-5 px-6 text-center">
+                      <div className="flex items-center justify-center gap-2">
                         {candidate.isTopCandidate && (
                           <Star className="w-4 h-4 text-yellow-500 fill-current" />
                         )}
                         <span className="font-medium">{candidate.name}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-muted-foreground truncate max-w-32 block">
-                        {candidate.filename}
-                      </span>
+                    <td className="py-5 px-6 text-center">
+                      <div className="flex justify-center">
+                        <span className="text-sm text-muted-foreground truncate max-w-32 block">
+                          {candidate.filename}
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <div className="space-y-1 max-w-48">
+                    <td className="py-5 px-6 text-center">
+                      <div className="flex flex-wrap gap-2 justify-center">
                         {candidate.missingSkills.slice(0, 3).map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                          <span 
+                            key={index} 
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors"
+                          >
                             {skill}
-                          </Badge>
+                          </span>
                         ))}
                         {candidate.missingSkills.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                             +{candidate.missingSkills.length - 3} more
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <p className="text-sm text-muted-foreground line-clamp-3 max-w-64">
+                    <td className="py-5 px-6 text-center">
+                      <div className="flex justify-center items-center h-full">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                            >
+                              <FileText className="w-4 h-4 mr-1" />
+                              View Analysis
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <FileText className="w-5 h-5" />
+                                Candidate Analysis - {candidate.name}
+                              </DialogTitle>
+                              <DialogDescription>
+                                Detailed pros and cons analysis for {candidate.name}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-6">
+                              <div className="flex items-center gap-3">
+                                <div className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-bold ${
+                                  candidate.matchScore >= 80 ? 'bg-green-100 text-green-800 border border-green-200' : 
+                                  candidate.matchScore >= 60 ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' : 'bg-red-100 text-red-800 border border-red-200'
+                                }`}>
+                                  {candidate.matchScore >= 80 ? '#1 Match' : 
+                                   candidate.matchScore >= 60 ? '#2 Match' : '#3 Match'}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  Match Score: {candidate.matchScore}%
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <h3 className="font-semibold text-green-700">Pros</h3>
+                                  </div>
+                                  <ul className="space-y-2 text-sm">
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-green-500 mt-1">✓</span>
+                                      <span>Strong technical background with 5+ years of experience</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-green-500 mt-1">✓</span>
+                                      <span>Excellent problem-solving and analytical skills</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-green-500 mt-1">✓</span>
+                                      <span>Relevant industry experience in similar roles</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-green-500 mt-1">✓</span>
+                                      <span>Strong communication and teamwork abilities</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-green-500 mt-1">✓</span>
+                                      <span>Proven track record of successful project delivery</span>
+                                    </li>
+                                  </ul>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                    <h3 className="font-semibold text-red-700">Cons</h3>
+                                  </div>
+                                  <ul className="space-y-2 text-sm">
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-red-500 mt-1">✗</span>
+                                      <span>Missing some advanced technical skills (React Native, GraphQL)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-red-500 mt-1">✗</span>
+                                      <span>Limited leadership and mentoring experience</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-red-500 mt-1">✗</span>
+                                      <span>No experience with cloud platforms (AWS, Azure)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                      <span className="text-red-500 mt-1">✗</span>
+                                      <span>Salary expectations may be above budget</span>
+                                    </li>
+                                  </ul>
+                                </div>
+                              </div>
+                              
+                              <div className="bg-muted/30 rounded-lg p-4">
+                                <h4 className="font-medium mb-2">Overall Assessment</h4>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
                         {candidate.remarks}
                       </p>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </td>
-                    <td className="py-4 px-4 text-center">
-                      <ProgressRing score={candidate.matchScore} />
+                    <td className="py-5 px-6 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="relative w-12 h-12">
+                          <svg width="48" height="48" className="transform -rotate-90">
+                            <circle
+                              cx="24"
+                              cy="24"
+                              r="20"
+                              strokeWidth="3"
+                              fill="none"
+                              stroke="#f3f4f6"
+                            />
+                            <circle
+                              cx="24"
+                              cy="24"
+                              r="20"
+                              strokeWidth="3"
+                              fill="none"
+                              stroke={candidate.matchScore >= 80 ? '#10b981' : candidate.matchScore >= 60 ? '#f59e0b' : '#ef4444'}
+                              strokeDasharray="125.6"
+                              strokeDashoffset={125.6 - (candidate.matchScore / 100) * 125.6}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-900">
+                              {candidate.matchScore}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <div className="flex gap-2">
+                    <td className="py-5 px-6">
+                      <div className="flex flex-col gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleAction(candidate, 'accept')}
-                              className="border-success text-success hover:bg-success hover:text-success-foreground"
+                              className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
                             >
                               <CheckCircle className="w-4 h-4 mr-1" />
                               Accept
@@ -387,7 +524,7 @@ Best regards,
                               size="sm"
                               variant="outline"
                               onClick={() => handleAction(candidate, 'reject')}
-                              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
                             >
                               <XCircle className="w-4 h-4 mr-1" />
                               Reject
