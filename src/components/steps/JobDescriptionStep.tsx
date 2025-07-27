@@ -59,14 +59,16 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
           onUpdate(response.formatted_text);
           toast({
             title: "File processed successfully",
-            description: `${file.name} has been processed in ${response.processing_time.toFixed(2)}s.`
+            description: `${file.name} has been processed in ${response.processing_time.toFixed(2)}s.`,
+            duration: 3000,
           });
         } catch (error) {
           console.error('Error processing file:', error);
           toast({
             title: "Processing failed",
             description: error instanceof Error ? error.message : "Failed to process the file. Please try again.",
-            variant: "destructive"
+            variant: "destructive",
+            duration: 3000,
           });
         } finally {
           setIsProcessing(false);
@@ -75,7 +77,8 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
         toast({
           title: "Invalid file type",
           description: "Please upload a PDF or Word document.",
-          variant: "destructive"
+          variant: "destructive",
+          duration: 3000,
         });
       }
     }
@@ -101,14 +104,16 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       
       toast({
         title: "Job description generated",
-        description: `AI has successfully created your job description in ${response.processing_time.toFixed(2)}s.`
+        description: `AI has successfully created your job description in ${response.processing_time.toFixed(2)}s.`,
+        duration: 3000,
       });
     } catch (error) {
       console.error('Error generating job description:', error);
       toast({
         title: "Generation failed",
         description: error instanceof Error ? error.message : "Failed to generate job description. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     } finally {
       setIsGenerating(false);

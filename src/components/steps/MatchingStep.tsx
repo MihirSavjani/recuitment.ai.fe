@@ -16,9 +16,11 @@ import {
   TrendingUp,
   Users,
   Award,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { matchAndScore, MatchAndScoreResponse } from '@/lib/api';
 
 interface Candidate {
   id: string;
@@ -27,7 +29,10 @@ interface Candidate {
   missingSkills: string[];
   remarks: string;
   matchScore: number;
+  rank: number;
   isTopCandidate?: boolean;
+  pros?: string[];
+  cons?: string[];
 }
 
 interface MatchingStepProps {
@@ -36,6 +41,7 @@ interface MatchingStepProps {
   matches: Candidate[];
   onUpdate: (matches: Candidate[]) => void;
   onPrev: () => void;
+  onComplete?: () => void;
 }
 
 interface ProgressRingProps {
@@ -95,73 +101,121 @@ export const MatchingStep: React.FC<MatchingStepProps> = ({
   resumes,
   matches,
   onUpdate,
-  onPrev
+  onPrev,
+  onComplete
 }) => {
   const [emailDraft, setEmailDraft] = useState({ subject: '', body: '' });
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hasCalledAPI, setHasCalledAPI] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [showRedirectPopup, setShowRedirectPopup] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+  const [countdownTimer, setCountdownTimer] = useState<NodeJS.Timeout | null>(null);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [analytics, setAnalytics] = useState({
+    candidatesAnalyzed: 0,
+    averageMatchScore: 0,
+    topMatchScore: 0,
+    bestCandidate: ''
+  });
   const { toast } = useToast();
 
-  // Generate mock matches when resumes are provided
+  // Manage countdown timer
   useEffect(() => {
-    if (resumes.length > 0 && matches.length === 0) {
-      const mockMatches: Candidate[] = resumes.map((resume, index) => {
-        const scores = [92, 78, 85, 65, 73, 88, 56, 82, 70, 75];
-        const score = scores[index] || Math.floor(Math.random() * 40) + 50;
-        
-        const names = [
-          'Sarah Johnson', 'Michael Chen', 'Emily Rodriguez', 'David Thompson', 'Jessica Liu',
-          'Robert Kim', 'Amanda Foster', 'James Wilson', 'Maria Garcia', 'Christopher Brown'
-        ];
+    if (showRedirectPopup && countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            window.location.href = '/';
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      setCountdownTimer(timer);
+      
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [showRedirectPopup, countdown]);
 
-        const skillSets = [
-          ['React Native', 'GraphQL'],
-          ['Docker', 'Kubernetes', 'AWS'],
-          ['Python', 'Machine Learning'],
-          ['Angular', 'RxJS', 'NgRx'],
-          ['Vue.js', 'Vuex'],
-          ['Node.js', 'Express'],
-          ['MongoDB', 'Redis'],
-          ['TypeScript', 'Jest'],
-          ['PostgreSQL', 'SQL'],
-          ['DevOps', 'CI/CD']
-        ];
-
-        const remarks = [
-          'Strong technical background with excellent problem-solving skills',
-          'Great communication skills and team collaboration experience',
-          'Solid experience in full-stack development',
-          'Good cultural fit with leadership potential',
-          'Recent graduate with fresh perspective and enthusiasm',
-          'Senior developer with mentoring experience',
-          'Strong backend expertise with cloud experience',
-          'Frontend specialist with UX/UI design skills',
-          'Database optimization and performance tuning expert',
-          'DevOps engineer with automation expertise'
-        ];
+  // Call match-and-score API when resumes are provided
+  useEffect(() => {
+    if (resumes.length > 0 && !hasCalledAPI && !isProcessing) {
+      setIsProcessing(true);
+      setHasCalledAPI(true);
+      
+      matchAndScore({
+        job_description: jobDescription,
+        resumes: resumes
+      })
+      .then((response: MatchAndScoreResponse) => {
+        // Transform API response to match our component structure
+        const transformedMatches: Candidate[] = response.analytics.candidate_rankings.map((ranking, index) => {
+          const candidateData = response.candidates_data[ranking.candidate_uuid];
 
         return {
-          id: `candidate-${index}`,
-          name: names[index] || `Candidate ${index + 1}`,
-          filename: resume.name,
-          missingSkills: skillSets[index] || ['Additional training needed'],
-          remarks: remarks[index] || 'Promising candidate with growth potential',
-          matchScore: score,
-          isTopCandidate: index === 0 && score >= 85
+            id: ranking.candidate_uuid,
+            name: candidateData.candidate_name,
+            filename: candidateData.resume_name,
+            missingSkills: candidateData.missing_skills,
+            remarks: ranking.summary,
+            matchScore: ranking.match_score,
+            rank: ranking.rank,
+            isTopCandidate: ranking.rank === 1,
+            pros: candidateData.pros,
+            cons: candidateData.cons
         };
       });
 
-      // Sort by match score
-      mockMatches.sort((a, b) => b.matchScore - a.matchScore);
-      mockMatches[0].isTopCandidate = true;
+        // Update analytics
+        setAnalytics({
+          candidatesAnalyzed: response.analytics.candidates_analyzed,
+          averageMatchScore: response.analytics.average_match_score,
+          topMatchScore: response.analytics.top_match_score,
+          bestCandidate: response.analytics.best_candidate
+        });
 
-      onUpdate(mockMatches);
+        onUpdate(transformedMatches);
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Successfully analyzed ${response.analytics.candidates_analyzed} candidates.`,
+          duration: 3000,
+        });
+      })
+      .catch((error) => {
+        console.error('Error in match and score:', error);
+        toast({
+          title: "Analysis Failed",
+          description: error.message || "Failed to analyze candidates. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        setHasCalledAPI(false); // Reset flag on error to allow retry
+      })
+      .finally(() => {
+        setIsProcessing(false);
+      });
     }
-  }, [resumes, matches, onUpdate]);
+  }, [resumes, jobDescription, hasCalledAPI, isProcessing, onUpdate, toast]);
 
   const handleAction = (candidate: Candidate, action: 'accept' | 'reject') => {
     setSelectedCandidate(candidate);
     setActionType(action);
+    
+    // Open the appropriate dialog
+    if (action === 'accept') {
+      setAcceptDialogOpen(true);
+    } else {
+      setRejectDialogOpen(true);
+    }
     
     const subject = action === 'accept' 
       ? `Exciting Opportunity - Next Steps in Our Hiring Process`
@@ -205,13 +259,15 @@ Best regards,
       await navigator.clipboard.writeText(text);
       toast({
         title: "Copied to clipboard",
-        description: "Email content has been copied to your clipboard."
+        description: "Email content has been copied to your clipboard.",
+        duration: 3000,
       });
     } catch (err) {
       toast({
         title: "Failed to copy",
         description: "Please copy the text manually.",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     }
   };
@@ -219,7 +275,24 @@ Best regards,
   const copyFullEmail = () => {
     const fullEmail = `Subject: ${emailDraft.subject}\n\n${emailDraft.body}`;
     copyToClipboard(fullEmail);
+    // Close the appropriate dialog
+    if (actionType === 'accept') {
+      setAcceptDialogOpen(false);
+    } else if (actionType === 'reject') {
+      setRejectDialogOpen(false);
+    }
+    setSelectedCandidate(null);
+    setActionType(null);
   };
+
+  if (isProcessing) {
+    return (
+      <div className="text-center py-12">
+        <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+        <p className="text-muted-foreground">Analyzing resumes and generating matches...</p>
+      </div>
+    );
+  }
 
   if (matches.length === 0) {
     return (
@@ -229,9 +302,6 @@ Best regards,
       </div>
     );
   }
-
-  const topCandidate = matches.find(match => match.isTopCandidate);
-  const avgScore = Math.round(matches.reduce((sum, match) => sum + match.matchScore, 0) / matches.length);
 
   return (
     <div className="space-y-6">
@@ -246,7 +316,7 @@ Best regards,
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Users className="w-5 h-5 text-primary" />
-              <span className="text-2xl font-bold">{matches.length}</span>
+              <span className="text-2xl font-bold">{analytics.candidatesAnalyzed}</span>
             </div>
             <p className="text-sm text-muted-foreground">Candidates Analyzed</p>
           </CardContent>
@@ -255,7 +325,7 @@ Best regards,
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <span className="text-2xl font-bold">{avgScore}%</span>
+              <span className="text-2xl font-bold">{analytics.averageMatchScore}%</span>
             </div>
             <p className="text-sm text-muted-foreground">Average Match Score</p>
           </CardContent>
@@ -264,7 +334,7 @@ Best regards,
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Award className="w-5 h-5 text-primary" />
-              <span className="text-2xl font-bold">{topCandidate?.matchScore || 0}%</span>
+              <span className="text-2xl font-bold">{analytics.topMatchScore}%</span>
             </div>
             <p className="text-sm text-muted-foreground">Top Match Score</p>
           </CardContent>
@@ -307,9 +377,9 @@ Best regards,
                     </td>
                     <td className="py-5 px-6 text-center">
                       <div className="flex justify-center">
-                        <span className="text-sm text-muted-foreground truncate max-w-32 block">
-                          {candidate.filename}
-                        </span>
+                      <span className="text-sm text-muted-foreground truncate max-w-32 block">
+                        {candidate.filename}
+                      </span>
                       </div>
                     </td>
                     <td className="py-5 px-6 text-center">
@@ -323,9 +393,15 @@ Best regards,
                           </span>
                         ))}
                         {candidate.missingSkills.length > 3 && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          <div className="relative group">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 cursor-help">
                             +{candidate.missingSkills.length - 3} more
-                          </span>
+                            </span>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
+                              {candidate.missingSkills.slice(3).join(', ')}
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -342,7 +418,7 @@ Best regards,
                               View Analysis
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2">
                                 <FileText className="w-5 h-5" />
@@ -352,14 +428,13 @@ Best regards,
                                 Detailed pros and cons analysis for {candidate.name}
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="space-y-6">
+                            <div className="space-y-6 overflow-y-auto max-h-[calc(80vh-120px)] pr-2">
                               <div className="flex items-center gap-3">
                                 <div className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-bold ${
-                                  candidate.matchScore >= 80 ? 'bg-green-100 text-green-800 border border-green-200' : 
-                                  candidate.matchScore >= 60 ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' : 'bg-red-100 text-red-800 border border-red-200'
+                                  candidate.rank === 1 ? 'bg-green-100 text-green-800 border border-green-200' : 
+                                  candidate.rank === 2 ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' : 'bg-red-100 text-red-800 border border-red-200'
                                 }`}>
-                                  {candidate.matchScore >= 80 ? '#1 Match' : 
-                                   candidate.matchScore >= 60 ? '#2 Match' : '#3 Match'}
+                                  #{candidate.rank} Match
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   Match Score: {candidate.matchScore}%
@@ -373,26 +448,12 @@ Best regards,
                                     <h3 className="font-semibold text-green-700">Pros</h3>
                                   </div>
                                   <ul className="space-y-2 text-sm">
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-green-500 mt-1">✓</span>
-                                      <span>Strong technical background with 5+ years of experience</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-green-500 mt-1">✓</span>
-                                      <span>Excellent problem-solving and analytical skills</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-green-500 mt-1">✓</span>
-                                      <span>Relevant industry experience in similar roles</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-green-500 mt-1">✓</span>
-                                      <span>Strong communication and teamwork abilities</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-green-500 mt-1">✓</span>
-                                      <span>Proven track record of successful project delivery</span>
-                                    </li>
+                                    {candidate.pros?.map((pro, index) => (
+                                      <li key={index} className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-1">✓</span>
+                                        <span>{pro}</span>
+                                      </li>
+                                    ))}
                                   </ul>
                                 </div>
                                 
@@ -402,22 +463,12 @@ Best regards,
                                     <h3 className="font-semibold text-red-700">Cons</h3>
                                   </div>
                                   <ul className="space-y-2 text-sm">
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-red-500 mt-1">✗</span>
-                                      <span>Missing some advanced technical skills (React Native, GraphQL)</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-red-500 mt-1">✗</span>
-                                      <span>Limited leadership and mentoring experience</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-red-500 mt-1">✗</span>
-                                      <span>No experience with cloud platforms (AWS, Azure)</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                      <span className="text-red-500 mt-1">✗</span>
-                                      <span>Salary expectations may be above budget</span>
-                                    </li>
+                                    {candidate.cons?.map((con, index) => (
+                                      <li key={index} className="flex items-start gap-2">
+                                        <span className="text-red-500 mt-1">✗</span>
+                                        <span>{con}</span>
+                                      </li>
+                                    ))}
                                   </ul>
                                 </div>
                               </div>
@@ -467,7 +518,7 @@ Best regards,
                     </td>
                     <td className="py-5 px-6">
                       <div className="flex flex-col gap-2">
-                        <Dialog>
+                        <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
                               size="sm"
@@ -518,7 +569,7 @@ Best regards,
                           </DialogContent>
                         </Dialog>
 
-                        <Dialog>
+                        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
                               size="sm"
@@ -593,15 +644,81 @@ Best regards,
           size="lg"
           className="px-8"
           onClick={() => {
+            setIsCompleted(true);
+            setShowRedirectPopup(true);
+            setCountdown(10);
+            
+            // Mark step as completed
+            if (onComplete) {
+              console.log('Calling onComplete to mark step as completed');
+              onComplete();
+            } else {
+              console.log('onComplete is not available');
+            }
+            
             toast({
-              title: "Process Complete",
-              description: "Your recruitment analysis is ready for review!"
+              title: "Analysis Complete! 🎉",
+              description: "Your recruitment analysis has been successfully completed. You can now review all candidate matches and take action on the best candidates.",
+              duration: 3000,
             });
           }}
         >
           Complete Analysis
         </Button>
       </div>
+
+      {/* Redirect Popup */}
+      <Dialog open={showRedirectPopup} onOpenChange={setShowRedirectPopup}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              Analysis Complete!
+            </DialogTitle>
+            <DialogDescription>
+              Redirecting to job description page in {countdown} seconds...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600 mb-2">
+                {countdown}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                You will be redirected to start a new analysis
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                    setCountdownTimer(null);
+                  }
+                  setShowRedirectPopup(false);
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Stay Here
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                    setCountdownTimer(null);
+                  }
+                  setShowRedirectPopup(false);
+                  window.location.href = '/';
+                }}
+                className="flex-1"
+              >
+                Go Now
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

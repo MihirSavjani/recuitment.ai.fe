@@ -89,6 +89,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /match-and-score:
+    post:
+      summary: Match and score candidates
+      description: Analyze resumes against job description and provide detailed candidate matching with scores
+      tags:
+        - Matching & Scoring
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                job_description:
+                  type: string
+                  description: The job description text to match against
+                resumes:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Resume files to analyze (PDF, DOC, DOCX)
+              required:
+                - job_description
+                - resumes
+      responses:
+        '200':
+          description: Candidates analyzed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchAndScoreResponse'
+        '400':
+          description: Bad request - Invalid parameters or files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     JobDescriptionResponse:
@@ -154,6 +199,124 @@ components:
         - must_have_skills
         - industry
         - location
+
+    MatchAndScoreResponse:
+      type: object
+      properties:
+        job_description:
+          type: string
+          description: The job description used for matching
+        candidates_data:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CandidateData'
+          description: Detailed data for each candidate
+        analytics:
+          $ref: '#/components/schemas/Analytics'
+      required:
+        - job_description
+        - candidates_data
+        - analytics
+
+    CandidateData:
+      type: object
+      properties:
+        candidate_name:
+          type: string
+          description: Name of the candidate
+          example: "John Doe"
+        resume_name:
+          type: string
+          description: Name of the resume file
+          example: "john_doe_resume.pdf"
+        missing_skills:
+          type: array
+          items:
+            type: string
+          description: Skills that the candidate is missing
+          example: ["React Native", "GraphQL"]
+        pros:
+          type: array
+          items:
+            type: string
+          description: Positive aspects of the candidate
+          example: ["Strong technical background", "Excellent problem-solving skills"]
+        cons:
+          type: array
+          items:
+            type: string
+          description: Areas where the candidate needs improvement
+          example: ["Limited leadership experience", "Missing advanced skills"]
+      required:
+        - candidate_name
+        - resume_name
+        - missing_skills
+        - pros
+        - cons
+
+    Analytics:
+      type: object
+      properties:
+        candidates_analyzed:
+          type: integer
+          description: Number of candidates analyzed
+          example: 2
+        average_match_score:
+          type: number
+          description: Average match score across all candidates
+          example: 57
+        top_match_score:
+          type: number
+          description: Highest match score achieved
+          example: 70
+        best_candidate:
+          type: string
+          description: Name of the best matching candidate
+          example: "Mihir Savjani"
+        best_candidate_reason:
+          type: string
+          description: Reason why this candidate is the best match
+        candidate_rankings:
+          type: array
+          items:
+            $ref: '#/components/schemas/CandidateRanking'
+          description: Ranked list of candidates
+      required:
+        - candidates_analyzed
+        - average_match_score
+        - top_match_score
+        - best_candidate
+        - best_candidate_reason
+        - candidate_rankings
+
+    CandidateRanking:
+      type: object
+      properties:
+        candidate_uuid:
+          type: string
+          description: Unique identifier for the candidate
+          example: "b94f137c-60bd-4f1e-884c-ba86aca07b4b"
+        candidate_name:
+          type: string
+          description: Name of the candidate
+          example: "Mihir Savjani"
+        match_score:
+          type: number
+          description: Match score for this candidate
+          example: 70
+        rank:
+          type: integer
+          description: Ranking position (1 being the best)
+          example: 1
+        summary:
+          type: string
+          description: Brief summary of the candidate's match
+      required:
+        - candidate_uuid
+        - candidate_name
+        - match_score
+        - rank
+        - summary
     
     ErrorResponse:
       type: object
@@ -171,4 +334,6 @@ components:
 
 tags:
   - name: Job Description
-    description: Operations related to job description processing and generation 
+    description: Operations related to job description processing and generation
+  - name: Matching & Scoring
+    description: Operations related to candidate matching and scoring analysis 

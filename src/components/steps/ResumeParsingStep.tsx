@@ -41,7 +41,8 @@ export const ResumeParsingStep: React.FC<ResumeParsingStepProps> = ({
       onUpdate([...resumes, ...newFiles]);
       toast({
         title: "Files uploaded successfully",
-        description: `${newFiles.length} resume(s) uploaded.`
+        description: `${newFiles.length} resume(s) uploaded.`,
+        duration: 3000,
       });
     }
 
@@ -49,7 +50,8 @@ export const ResumeParsingStep: React.FC<ResumeParsingStepProps> = ({
       toast({
         title: "Some files were skipped",
         description: `Invalid file types: ${invalidFiles.join(', ')}`,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     }
 
@@ -57,7 +59,8 @@ export const ResumeParsingStep: React.FC<ResumeParsingStepProps> = ({
       toast({
         title: "Upload limit reached",
         description: "Maximum 10 resumes allowed.",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     }
   }, [resumes, onUpdate, toast]);
@@ -88,7 +91,8 @@ export const ResumeParsingStep: React.FC<ResumeParsingStepProps> = ({
     onUpdate(updatedResumes);
     toast({
       title: "File removed",
-      description: "Resume has been removed from the list."
+      description: "Resume has been removed from the list.",
+      duration: 3000,
     });
   };
 

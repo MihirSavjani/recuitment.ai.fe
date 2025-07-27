@@ -15,6 +15,7 @@ interface StepData {
     missingSkills: string[];
     remarks: string;
     matchScore: number;
+    rank: number;
   }>;
 }
 
@@ -26,6 +27,7 @@ const steps = [
 
 export const RecruitmentFlow: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [data, setData] = useState<StepData>({
     jobDescription: '',
     resumes: [],
@@ -46,6 +48,16 @@ export const RecruitmentFlow: React.FC = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleStepCompletion = () => {
+    console.log('handleStepCompletion called, current step:', currentStep);
+    console.log('completedSteps before:', Array.from(completedSteps));
+    setCompletedSteps(prev => {
+      const newSet = new Set([...prev, currentStep]);
+      console.log('completedSteps after:', Array.from(newSet));
+      return newSet;
+    });
   };
 
   const renderStepContent = () => {
@@ -75,6 +87,7 @@ export const RecruitmentFlow: React.FC = () => {
             matches={data.matches}
             onUpdate={(matches) => updateData({ matches })}
             onPrev={prevStep}
+            onComplete={handleStepCompletion}
           />
         );
       default:
@@ -160,7 +173,7 @@ export const RecruitmentFlow: React.FC = () => {
                       className={`step-indicator ${
                         currentStep === step.id
                           ? 'active animate-pulse-glow'
-                          : currentStep > step.id
+                          : completedSteps.has(step.id) || currentStep > step.id
                           ? 'completed'
                           : 'inactive'
                       }`}
@@ -168,7 +181,7 @@ export const RecruitmentFlow: React.FC = () => {
                       tabIndex={0}
                       aria-label={`Step ${step.id}: ${step.title}`}
                     >
-                      {currentStep > step.id ? (
+                      {completedSteps.has(step.id) || currentStep > step.id ? (
                         <Check className="w-5 h-5" />
                       ) : (
                         step.id
@@ -187,7 +200,7 @@ export const RecruitmentFlow: React.FC = () => {
                   </div>
                   {index < steps.length - 1 && (
                     <div className={`w-40 h-0.5 mx-4 transition-colors duration-300 ${
-                      currentStep > step.id ? 'bg-success' : 'bg-border'
+                      completedSteps.has(step.id) || currentStep > step.id ? 'bg-success' : 'bg-border'
                     }`} />
                   )}
                 </div>
