@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileText, Bot, Edit3, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { processJobDescription } from '@/lib/api';
 
 interface JobDescriptionStepProps {
   jobDescription: string;
@@ -21,6 +22,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<'upload' | 'ai' | 'manual'>('upload');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [aiForm, setAiForm] = useState({
     jobTitle: '',
@@ -33,21 +35,41 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   });
   const { toast } = useToast();
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Auto-resize textarea when job description changes
+  useEffect(() => {
+    const textarea = document.getElementById('final-jd') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.max(12 * 16, textarea.scrollHeight) + 'px';
+    }
+  }, [jobDescription]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (allowedTypes.includes(file.type)) {
         setUploadedFile(file);
         setSelectedMethod('upload');
-        // Simulate file processing
-        setTimeout(() => {
-          onUpdate(`Job Description extracted from ${file.name}\n\nWe are seeking a talented professional for this exciting opportunity...`);
+        setIsProcessing(true);
+        
+        try {
+          const response = await processJobDescription(file);
+          onUpdate(response.formatted_text);
           toast({
-            title: "File uploaded successfully",
-            description: `${file.name} has been processed and job description extracted.`
+            title: "File processed successfully",
+            description: `${file.name} has been processed in ${response.processing_time.toFixed(2)}s.`
           });
-        }, 1000);
+        } catch (error) {
+          console.error('Error processing file:', error);
+          toast({
+            title: "Processing failed",
+            description: error instanceof Error ? error.message : "Failed to process the file. Please try again.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsProcessing(false);
+        }
       } else {
         toast({
           title: "Invalid file type",
@@ -129,17 +151,31 @@ We offer competitive compensation and excellent benefits. Join our innovative te
                   accept=".pdf,.doc,.docx"
                   onChange={handleFileUpload}
                   className="hidden"
+                  disabled={isProcessing}
                 />
-                <label htmlFor="jd-upload" className="cursor-pointer">
-                  <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm font-medium">Click to upload</p>
-                  <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX</p>
+                <label htmlFor="jd-upload" className={`cursor-pointer ${isProcessing ? 'pointer-events-none opacity-50' : ''}`}>
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-8 h-8 mx-auto mb-2 text-primary animate-spin" />
+                      <p className="text-sm font-medium">Processing...</p>
+                      <p className="text-xs text-muted-foreground mt-1">Please wait</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm font-medium">Click to upload</p>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX</p>
+                    </>
+                  )}
                 </label>
               </div>
               {uploadedFile && (
                 <div className="mt-4 file-item">
                   <FileText className="w-5 h-5 text-primary" />
                   <span className="text-sm font-medium">{uploadedFile.name}</span>
+                  {isProcessing && (
+                    <Loader2 className="w-4 h-4 text-primary animate-spin ml-auto" />
+                  )}
                 </div>
               )}
             </CardContent>
@@ -285,7 +321,17 @@ We offer competitive compensation and excellent benefits. Join our innovative te
           value={jobDescription}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Enter or edit your job description here..."
-          className="min-h-48 resize-none"
+          className="min-h-48 resize-none overflow-hidden"
+          style={{
+            height: 'auto',
+            minHeight: '12rem',
+            maxHeight: '40rem'
+          }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = Math.max(12 * 16, target.scrollHeight) + 'px';
+          }}
           aria-label="Final job description editor"
         />
       </div>
