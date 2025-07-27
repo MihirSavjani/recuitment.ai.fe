@@ -37,6 +37,25 @@ npm run dev
 
 Open the URL shown in the terminal (typically `http://localhost:8080` or next available port).
 
+## Testing Files
+
+For testing the application, you can use the sample files provided in the root directory:
+
+### Job Descriptions (`Jds And Resumes/jds/`)
+- `Python AI Developer.doc` - AI Developer role
+- `Full Stack Developer JD.docx` - Full Stack position
+- `sample jd.pdf` - Sample job description
+- `HR JD.pdf` - HR role description
+
+### Resumes (`Jds And Resumes/resumes/`)
+- `deep m.pdf` - Deep M's resume
+- `kartik.pdf` - Kartik's resume
+- `QA Manual Tester - Template 6.pdf` - QA tester resume
+- `Ryan_resume.pdf` - Ryan's resume
+- `Mihir_Savjani_Resume.pdf` - Mihir's resume
+
+These files can be used to test all features including file upload, AI processing, and candidate matching.
+
 ## API Endpoints
 
 The application requires these backend endpoints:
