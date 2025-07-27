@@ -37,53 +37,57 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  formatted_text:
-                    type: string
-                    description: The extracted and formatted job description text
-                    example: |
-                      **Job Title:** Associate Brand Manager
-                      
-                      **Company/Department:** ABC (a division of Sample Corporation)
-                      
-                      **Job Summary:**
-                      As an Associate Brand Manager you will be working for ABC division for brands such as X, Y, Z, etc.
-                  processing_time:
-                    type: number
-                    format: float
-                    description: Time taken to process the file in seconds
-                    example: 3.84
+                $ref: '#/components/schemas/JobDescriptionResponse'
         '400':
           description: Bad request - Invalid file type or missing file
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Invalid file type. Please upload PDF, DOC, or DOCX files only."
+                $ref: '#/components/schemas/ErrorResponse'
         '413':
           description: File too large
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "File size exceeds maximum allowed limit of 10MB."
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Failed to process the file. Please try again."
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /job-description/generate:
+    post:
+      summary: Generate job description with AI
+      description: Generate a comprehensive job description using AI based on provided parameters
+      tags:
+        - Job Description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobDescriptionGenerateRequest'
+      responses:
+        '200':
+          description: Job description generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobDescriptionResponse'
+        '400':
+          description: Bad request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -93,13 +97,63 @@ components:
         formatted_text:
           type: string
           description: The extracted and formatted job description text
+          example: |
+            **Job Title:** Senior Python Developer
+            
+            **Company:** Tech Corp
+            
+            **Department:** Engineering
+            
+            **Job Summary:**
+            Tech Corp is seeking a highly motivated and experienced Senior Python Developer to join our dynamic engineering team...
         processing_time:
           type: number
           format: float
           description: Time taken to process the file in seconds
+          example: 5.23
       required:
         - formatted_text
         - processing_time
+
+    JobDescriptionGenerateRequest:
+      type: object
+      properties:
+        job_title:
+          type: string
+          description: The job title for the position
+          example: "Senior Python Developer"
+        experience:
+          type: string
+          description: Required experience level
+          example: "3-5 years"
+        company:
+          type: string
+          description: Company name
+          example: "Tech Corp"
+        job_type:
+          type: string
+          description: Type of employment
+          example: "Full-time"
+        must_have_skills:
+          type: string
+          description: Required skills for the position
+          example: "Python, FastAPI, React, TypeScript, Node.js"
+        industry:
+          type: string
+          description: Industry sector
+          example: "Technology"
+        location:
+          type: string
+          description: Job location
+          example: "San Francisco, CA"
+      required:
+        - job_title
+        - experience
+        - company
+        - job_type
+        - must_have_skills
+        - industry
+        - location
     
     ErrorResponse:
       type: object
@@ -107,12 +161,14 @@ components:
         message:
           type: string
           description: Error message
+          example: "Invalid file type. Please upload PDF, DOC, or DOCX files only."
         status:
           type: integer
           description: HTTP status code
+          example: 400
       required:
         - message
 
 tags:
   - name: Job Description
-    description: Operations related to job description processing 
+    description: Operations related to job description processing and generation 

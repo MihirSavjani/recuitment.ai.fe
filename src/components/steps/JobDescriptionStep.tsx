@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileText, Bot, Edit3, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { processJobDescription } from '@/lib/api';
+import { processJobDescription, generateJobDescription } from '@/lib/api';
 
 interface JobDescriptionStepProps {
   jobDescription: string;
@@ -40,7 +40,8 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     const textarea = document.getElementById('final-jd') as HTMLTextAreaElement;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = Math.max(12 * 16, textarea.scrollHeight) + 'px';
+      const newHeight = Math.max(12 * 16, textarea.scrollHeight);
+      textarea.style.height = Math.min(newHeight, 40 * 16) + 'px';
     }
   }, [jobDescription]);
 
@@ -84,37 +85,34 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     setIsGenerating(true);
     setSelectedMethod('ai');
     
-    // Simulate AI generation
-    setTimeout(() => {
-      const generatedJD = `${aiForm.jobTitle}
+    try {
+      const request = {
+        job_title: aiForm.jobTitle,
+        experience: aiForm.experience,
+        company: aiForm.company,
+        job_type: aiForm.type,
+        must_have_skills: aiForm.skills,
+        industry: aiForm.industry,
+        location: aiForm.location
+      };
 
-Position: ${aiForm.jobTitle}
-Company: ${aiForm.company}
-Location: ${aiForm.location}
-Type: ${aiForm.type}
-Industry: ${aiForm.industry}
-
-About the Role:
-We are seeking a ${aiForm.experience} ${aiForm.jobTitle} to join our dynamic team at ${aiForm.company}. This is an exciting opportunity to work in the ${aiForm.industry} industry.
-
-Key Requirements:
-- ${aiForm.experience} years of relevant experience
-- Must-have skills: ${aiForm.skills}
-- Strong problem-solving abilities
-- Excellent communication skills
-
-Location: ${aiForm.location}
-Employment Type: ${aiForm.type}
-
-We offer competitive compensation and excellent benefits. Join our innovative team and make a real impact!`;
-
-      onUpdate(generatedJD);
-      setIsGenerating(false);
+      const response = await generateJobDescription(request);
+      onUpdate(response.formatted_text);
+      
       toast({
         title: "Job description generated",
-        description: "AI has successfully created your job description."
+        description: `AI has successfully created your job description in ${response.processing_time.toFixed(2)}s.`
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Error generating job description:', error);
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Failed to generate job description. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const canProceed = jobDescription.trim().length > 0;
@@ -321,7 +319,7 @@ We offer competitive compensation and excellent benefits. Join our innovative te
           value={jobDescription}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Enter or edit your job description here..."
-          className="min-h-48 resize-none overflow-hidden"
+          className="min-h-48 resize-none overflow-y-auto"
           style={{
             height: 'auto',
             minHeight: '12rem',
@@ -330,7 +328,8 @@ We offer competitive compensation and excellent benefits. Join our innovative te
           onInput={(e) => {
             const target = e.target as HTMLTextAreaElement;
             target.style.height = 'auto';
-            target.style.height = Math.max(12 * 16, target.scrollHeight) + 'px';
+            const newHeight = Math.max(12 * 16, target.scrollHeight);
+            target.style.height = Math.min(newHeight, 40 * 16) + 'px';
           }}
           aria-label="Final job description editor"
         />
