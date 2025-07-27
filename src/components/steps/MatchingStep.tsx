@@ -394,12 +394,19 @@ Best regards,
                         ))}
                         {candidate.missingSkills.length > 3 && (
                           <div className="relative group">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 cursor-help">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 cursor-help hover:bg-blue-100 transition-colors">
                             +{candidate.missingSkills.length - 3} more
                             </span>
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
-                              {candidate.missingSkills.slice(3).join(', ')}
-                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-4 py-3 bg-gray-800 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50 shadow-2xl border border-gray-700 min-w-64 max-w-80 backdrop-blur-sm">
+                              <div className="font-semibold mb-3 text-blue-300 border-b border-gray-600 pb-2">Additional Missing Skills:</div>
+                              <div className="text-gray-100 leading-relaxed pt-2 pb-1">
+                                {candidate.missingSkills.slice(3).map((skill, index) => (
+                                  <span key={index} className="inline-block bg-gray-700 rounded px-3 py-1.5 mr-2 mb-2 text-xs border border-gray-600">
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-transparent border-t-gray-800"></div>
                             </div>
                           </div>
                         )}
