@@ -655,12 +655,6 @@ Best regards,
             } else {
               console.log('onComplete is not available');
             }
-            
-            toast({
-              title: "Analysis Complete! 🎉",
-              description: "Your recruitment analysis has been successfully completed. You can now review all candidate matches and take action on the best candidates.",
-              duration: 3000,
-            });
           }}
         >
           Complete Analysis
